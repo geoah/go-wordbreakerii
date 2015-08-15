@@ -10,7 +10,9 @@ func wordBreak(str string, dict []string) (results []string) {
 	// This seems to be needed quite a lot
 	strLength := len(str)
 	// Create an array to map where we found words in the string
-	solution := make([][]string, strLength)
+	// Keys are the character positions of the string
+	// Values hold the *lengths* of the words found on each position
+	solution := make([][]int, strLength)
 
 	// Move from left to right on the string as i
 	for i := 0; i <= strLength; i++ {
@@ -20,7 +22,7 @@ func wordBreak(str string, dict []string) (results []string) {
 			possibleWord := str[i:j]
 			// and map it
 			if _, ok := dictMap[possibleWord]; ok == true {
-				solution[i] = append(solution[i], possibleWord)
+				solution[i] = append(solution[i], j)
 			}
 		}
 	}
