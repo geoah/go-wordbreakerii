@@ -4,8 +4,13 @@ import "fmt"
 
 // wordBreak receives a string and creates a map of where words start
 func wordBreak(str string, dict []string) (results []string) {
-	// For now force the dict to be a map to allow us to search easily
-	dictMap := map[string]bool{"cat": true, "cats": true, "and": true, "sand": true, "dog": true}
+	// Let's convert our dict into a map to allow us to search easily for words
+	dictMap := map[string]bool{}
+	// Keys will be our dictionary's words
+	// Values will be bool:true for no apparent reason
+	for _, word := range dict {
+		dictMap[word] = true
+	}
 
 	// This seems to be needed quite a lot
 	strLength := len(str)
