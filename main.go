@@ -41,6 +41,10 @@ func wordBreak(str string, dict []string) []string {
 	sentencePaths := [][]int{[]int{0}}
 	// Create an array to store all possible sentenses
 	sentences := make([]string, 0)
+	// Create a semaphore to parallelize the path recursion
+	c := make(chan int)
+	p := make(chan []int)
+	s := make(chan string)
 
 	for {
 		// We need to create an flat array with all possible sentences
@@ -51,41 +55,62 @@ func wordBreak(str string, dict []string) []string {
 		// On the end of each loop the path list is replaced with the new paths and
 		// start all over again until each path is complete.
 		nextSentencePaths := [][]int{}
+		left := len(sentencePaths)
 		for _, sentencePath := range sentencePaths {
-			// Seems useful quite a bit
-			sentencePathLength := len(sentencePath)
-			// When going through the last word of each sentence, we basically try to
-			// add the start of the next - non existing word. Which is the end of our
-			// string.
-			// So once the last position of a path is full length of our string, our
-			// sentence is now complete and can add it to the sentenses array.
-			if sentencePath[sentencePathLength-1] == strLength {
-				// The sentense for this path is now complete
-				// The last position in the path is fake as there is no word starting
-				// there, but rather is the end of the string.
-				lastPosition := sentencePathLength - 1
-				// Go through all positions on the path (except the last) and construct
-				// the sentence.
-				temp := []string{}
-				for i := 0; i < lastPosition; i++ {
-					temp = append(temp, str[sentencePath[i]:sentencePath[i+1]])
+			go func(sentencePath []int) {
+				// Seems useful quite a bit
+				sentencePathLength := len(sentencePath)
+				// When going through the last word of each sentence, we basically try to
+				// add the start of the next - non existing word. Which is the end of our
+				// string.
+				// So once the last position of a path is full length of our string, our
+				// sentence is now complete and can add it to the sentenses array.
+				if sentencePath[sentencePathLength-1] == strLength {
+					// The sentense for this path is now complete
+					// The last position in the path is fake as there is no word starting
+					// there, but rather is the end of the string.
+					lastPosition := sentencePathLength - 1
+					// Go through all positions on the path (except the last) and construct
+					// the sentence.
+					temp := []string{}
+					for i := 0; i < lastPosition; i++ {
+						temp = append(temp, str[sentencePath[i]:sentencePath[i+1]])
+					}
+					// And add it to our sentences array
+					// sentences = append(sentences, strings.Join(temp, " "))
+					s <- strings.Join(temp, " ")
+				} else {
+					// We take the last position of the current path and find the length of
+					// the words that start on this position.
+					for _, j := range solution[sentencePath[sentencePathLength-1]] {
+						// We create a new path containing the current path as well as the
+						// position of the next word.
+						// If this is the last word of the sentence, the appended position
+						// will be the end of the string.
+						newPath := append(sentencePath, j)
+						// Add the path to the list of paths
+						// nextSentencePaths = append(nextSentencePaths, newPath)
+						p <- newPath
+					}
 				}
-				// And add it to our sentences array
-				sentences = append(sentences, strings.Join(temp, " "))
-			} else {
-				// We take the last position of the current path and find the length of
-				// the words that start on this position.
-				for _, j := range solution[sentencePath[sentencePathLength-1]] {
-					// We create a new path containing the current path as well as the
-					// position of the next word.
-					// If this is the last word of the sentence, the appended position
-					// will be the end of the string.
-					newPath := append(sentencePath, j)
-					// Add the path to the list of paths
-					nextSentencePaths = append(nextSentencePaths, newPath)
-				}
+				c <- 1
+			}(sentencePath)
+		}
+
+		fmt.Println(len(sentencePaths))
+		for left > 0 {
+			select {
+			case moreLeft := <-c:
+				left = left - moreLeft
+			case newPath := <-p:
+				fmt.Println("GOT PATH", newPath)
+				nextSentencePaths = append(nextSentencePaths, newPath)
+			case sentense := <-s:
+				fmt.Println("GOT SENTENCE", sentense)
+				sentences = append(sentences, sentense)
 			}
 		}
+
 		// Once all paths have been processed, the list of new paths will be empty
 		// which means that all paths have been concluded and that their sentences
 		// have been added to the list
@@ -103,8 +128,11 @@ func wordBreak(str string, dict []string) []string {
 }
 
 func main() {
-	s := "catsanddog"
-	dict := []string{"cat", "cats", "and", "sand", "dog"}
+	// s := "catsanddog"
+	// dict := []string{"cat", "cats", "and", "sand", "dog"}
+
+	s := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"
+	dict := []string{"a", "aa", "aaa", "aaaa", "aaaaa", "aaaaaa", "aaaaaaa", "aaaaaaaa", "aaaaaaaaa", "aaaaaaaaaa"}
 
 	sentences := wordBreak(s, dict)
 
