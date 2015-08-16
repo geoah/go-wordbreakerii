@@ -22,15 +22,22 @@ func wordBreak(str string, dict []string) []string {
 	// Values hold the *lengths* of the words found on each position
 	solution := make([][]int, strLength)
 
-	// Move from left to right on the string as i
-	for i := 0; i <= strLength; i++ {
-		// and then again on the leftover substring after i
+	// Move from right to left on the string as i
+	for i := strLength - 1; i >= 0; i-- {
+		// and then move from i to the end of the string.
+		// Doing so allows us to make sure that words are sequential and don't have
+		// gaps between them.
 		for j := i + 1; j <= strLength; j++ {
 			// check if our substring is a word
 			possibleWord := str[i:j]
-			// and map it
-			if _, ok := dictMap[possibleWord]; ok == true {
-				solution[i] = append(solution[i], j)
+			// check that this is either the last word of our sentence of that at the
+			// end of the word there is another word starting
+			// this should allow
+			if j == strLength || len(solution[j]) > 0 {
+				// and if so, store its length
+				if _, ok := dictMap[possibleWord]; ok == true {
+					solution[i] = append(solution[i], j)
+				}
 			}
 		}
 	}
